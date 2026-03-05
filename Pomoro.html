@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Pomodoro de Estudio</title>
+
+<style>
+body{
+font-family:system-ui;
+margin:25px;
+}
+
+.card{
+max-width:600px;
+border:1px solid #ddd;
+border-radius:12px;
+padding:20px;
+}
+
+button{
+padding:10px 14px;
+border-radius:8px;
+border:1px solid #ccc;
+cursor:pointer;
+}
+
+.primary{
+border-color:#000;
+}
+
+.row{
+display:flex;
+gap:10px;
+flex-wrap:wrap;
+}
+
+.muted{
+color:#666;
+}
+
+.mono{
+font-family:monospace;
+font-size:16px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>⏰ Pomodoro de Estudio</h2>
+
+<div class="row">
+<button id="start" class="primary">Iniciar</button>
+<button id="stop" disabled>Detener</button>
+<button id="test">Probar sonido</button>
+</div>
+
+<p class="muted">
+Estado: <strong id="status">detenida</strong>
+<span id="countdownWrap" style="display:none">
+ · faltan <strong id="countdown" class="mono">--:--</strong>
+</span>
+<br>
+Próxima alarma: <strong id="next">—</strong>
+</p>
+
+<hr>
+
+<label>Intervalo (minutos)</label>
+<input id="mins" type="number" value="30" min="1">
+
+<hr>
+
+<label>Alarma</label><br>
+<input id="file" type="file" accept="audio/*">
+
+<div class="muted" id="fileLabel">Ningún archivo seleccionado</div>
+
+<hr>
+
+<label>Volumen</label><br>
+<input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+<span id="volLabel">0.8</span>
+
+</div>
+
+
+<script>
+
+let timer=null
+let nextAlarm=null
+let countdownTimer=null
+
+let audioCtx=null
+let gainNode=null
+let decodedBuffer=null
+
+const startBtn=document.getElementById("start")
+const stopBtn=document.getElementById("stop")
+const testBtn=document.getElementById("test")
+
+const status=document.getElementById("status")
+const next=document.getElementById("next")
+
+const countdown=document.getElementById("countdown")
+const countdownWrap=document.getElementById("countdownWrap")
+
+const minsInput=document.getElementById("mins")
+
+const fileInput=document.getElementById("file")
+const fileLabel=document.getElementById("fileLabel")
+
+const vol=document.getElementById("vol")
+const volLabel=document.getElementById("volLabel")
+
+function formatTime(date){
+return date.toLocaleTimeString()
+}
+
+function pad(n){
+return n.toString().padStart(2,"0")
+}
+
+function updateCountdown(){
+
+if(!nextAlarm) return
+
+let diff=nextAlarm-Date.now()
+
+if(diff<0) diff=0
+
+let sec=Math.ceil(diff/1000)
+
+let m=Math.floor(sec/60)
+let s=sec%60
+
+countdown.textContent=pad(m)+":"+pad(s)
+
+}
+
+function startCountdown(){
+
+stopCountdown()
+
+countdownTimer=setInterval(updateCountdown,1000)
+
+}
+
+function stopCountdown(){
+
+if(countdownTimer)
+clearInterval(countdownTimer)
+
+countdownTimer=null
+
+}
+
+async function unlockAudio(){
+
+if(!audioCtx){
+
+audioCtx=new AudioContext()
+
+gainNode=audioCtx.createGain()
+
+gainNode.connect(audioCtx.destination)
+
+}
+
+if(audioCtx.state==="suspended")
+await audioCtx.resume()
+
+}
+
+function updateVolume(){
+
+volLabel.textContent=vol.value
+
+if(gainNode)
+gainNode.gain.value=vol.value
+
+}
+
+async function decodeFile(file){
+
+if(!audioCtx) return
+
+const buf=await file.arrayBuffer()
+
+decodedBuffer=await audioCtx.decodeAudioData(buf)
+
+}
+
+async function playSound(){
+
+await unlockAudio()
+
+updateVolume()
+
+if(decodedBuffer){
+
+let src=audioCtx.createBufferSource()
+
+src.buffer=decodedBuffer
+
+src.connect(gainNode)
+
+src.start()
+
+}else{
+
+let osc=audioCtx.createOscillator()
+let g=audioCtx.createGain()
+
+osc.frequency.value=880
+
+g.gain.value=0.12
+
+osc.connect(g)
+g.connect(gainNode)
+
+osc.start()
+
+setTimeout(()=>osc.stop(),700)
+
+}
+
+}
+
+function minutesToMs(m){
+return m*60000
+}
+
+function schedule(){
+
+let mins=parseInt(minsInput.value)||30
+
+let delay=minutesToMs(mins)
+
+nextAlarm=Date.now()+delay
+
+next.textContent=formatTime(new Date(nextAlarm))
+
+startCountdown()
+
+timer=setTimeout(async ()=>{
+
+await playSound()
+
+schedule()
+
+},delay)
+
+}
+
+function start(){
+
+stop()
+
+schedule()
+
+status.textContent="corriendo"
+
+startBtn.disabled=true
+stopBtn.disabled=false
+
+countdownWrap.style.display="inline"
+
+}
+
+function stop(){
+
+if(timer)
+clearTimeout(timer)
+
+timer=null
+
+nextAlarm=null
+
+stopCountdown()
+
+status.textContent="detenida"
+
+next.textContent="—"
+
+countdownWrap.style.display="none"
+
+startBtn.disabled=false
+stopBtn.disabled=true
+
+}
+
+startBtn.onclick=start
+
+stopBtn.onclick=stop
+
+testBtn.onclick=playSound
+
+minsInput.onchange=()=>{
+if(timer) start()
+}
+
+vol.oninput=updateVolume
+
+fileInput.onchange=async ()=>{
+
+let f=fileInput.files[0]
+
+if(!f){
+
+decodedBuffer=null
+fileLabel.textContent="Ningún archivo seleccionado"
+
+return
+}
+
+fileLabel.textContent=f.name
+
+await unlockAudio()
+
+await decodeFile(f)
+
+}
+
+updateVolume()
+
+</script>
+
+</body>
+</html>
