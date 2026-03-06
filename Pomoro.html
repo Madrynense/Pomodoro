@@ -1,332 +1,80 @@
 <!doctype html>
 <html lang="es">
-
 <head>
-<meta charset="utf-8">
-<title>Pomodoro</title>
-
-<link rel="stylesheet" href="estilos.css">
-
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pomodoro</title>
+  <link rel="stylesheet" href="estilos.css">
 </head>
 
-
 <body>
+  <main class="app">
+    <section class="card">
+      <header class="header">
+        <h1>Pomodoro - Sistema de Estudio</h1>
+        
+      </header>
 
-<div class="card">
+      <section class="timer">
+        <div class="ring" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle class="track" cx="60" cy="60" r="52"></circle>
+            <circle class="progress" cx="60" cy="60" r="52"></circle>
+          </svg>
+        </div>
 
-<h2><center>Pomodoro - Sistema de Estudio</center></h2>
+        <div class="time">
+          <div class="label">Faltan</div>
+          <div id="countdown" class="value">--:--</div>
+          <div class="meta">
+            <span>Estado: <strong id="status">detenida</strong></span>
+            <span class="dot">•</span>
+            <span>Próxima: <strong id="next">—</strong></span>
+          </div>
+        </div>
+      </section>
 
-<div class="controls">
+      <hr>
+
+      <section class="controls">
 
 <button id="start" class="primary">Iniciar</button>
+
 <button id="stop" disabled>Detener</button>
+
 <button id="test">Probar sonido</button>
 
-</div>
-
-
-<div class="status">
-
-<p>
-Estado:
-<strong id="status">detenida</strong>
-
-<span id="countdownWrap">
- · faltan
- <strong id="countdown">--:--</strong>
-</span>
-</p>
-
-<p>
-Próxima alarma:
-<strong id="next">—</strong>
-</p>
-
-</div>
-
-
-<hr>
-
-
-<div class="settings">
-
-<label>Intervalo (min)</label>
-<input id="mins" type="number" value="30" min="1">
-
-</div>
-
-
-<hr>
-
-
-<div class="settings">
-
-<label>Elegir sonido MP3</label>
-<input id="file" type="file" accept="audio/*">
-
-<div class="muted" id="fileLabel">
-Ningún archivo seleccionado
-</div>
-
-</div>
-
-
-<hr>
-
-
-<div class="settings">
-
-<label>Volumen</label>
-
-<input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
-
-<span id="volLabel">0.8</span>
-
-</div>
-
-
-</div>
-
-
-
-<script>
-
-let timer=null
-let nextAlarm=null
-let countdownTimer=null
-
-let audioCtx=null
-let gainNode=null
-let decodedBuffer=null
-
-const startBtn=document.getElementById("start")
-const stopBtn=document.getElementById("stop")
-const testBtn=document.getElementById("test")
-
-const status=document.getElementById("status")
-const next=document.getElementById("next")
-
-const countdown=document.getElementById("countdown")
-const countdownWrap=document.getElementById("countdownWrap")
-
-const minsInput=document.getElementById("mins")
-
-const fileInput=document.getElementById("file")
-const fileLabel=document.getElementById("fileLabel")
-
-const vol=document.getElementById("vol")
-const volLabel=document.getElementById("volLabel")
-
-function formatTime(date){
-return date.toLocaleTimeString()
-}
-
-function pad(n){
-return n.toString().padStart(2,"0")
-}
-
-function updateCountdown(){
-
-if(!nextAlarm) return
-
-let diff=nextAlarm-Date.now()
-
-if(diff<0) diff=0
-
-let sec=Math.ceil(diff/1000)
-
-let m=Math.floor(sec/60)
-let s=sec%60
-
-countdown.textContent=pad(m)+":"+pad(s)
-
-}
-
-function startCountdown(){
-
-stopCountdown()
-
-countdownTimer=setInterval(updateCountdown,1000)
-
-}
-
-function stopCountdown(){
-
-if(countdownTimer)
-clearInterval(countdownTimer)
-
-countdownTimer=null
-
-}
-
-async function unlockAudio(){
-
-if(!audioCtx){
-
-audioCtx=new AudioContext()
-
-gainNode=audioCtx.createGain()
-
-gainNode.connect(audioCtx.destination)
-
-}
-
-if(audioCtx.state==="suspended")
-await audioCtx.resume()
-
-}
-
-function updateVolume(){
-
-volLabel.textContent=vol.value
-
-if(gainNode)
-gainNode.gain.value=vol.value
-
-}
-
-async function decodeFile(file){
-
-if(!audioCtx) return
-
-const buf=await file.arrayBuffer()
-
-decodedBuffer=await audioCtx.decodeAudioData(buf)
-
-}
-
-async function playSound(){
-
-await unlockAudio()
-
-updateVolume()
-
-if(decodedBuffer){
-
-let src=audioCtx.createBufferSource()
-
-src.buffer=decodedBuffer
-
-src.connect(gainNode)
-
-src.start()
-
-}else{
-
-let osc=audioCtx.createOscillator()
-let g=audioCtx.createGain()
-
-osc.frequency.value=880
-
-g.gain.value=0.12
-
-osc.connect(g)
-g.connect(gainNode)
-
-osc.start()
-
-setTimeout(()=>osc.stop(),700)
-
-}
-
-}
-
-function minutesToMs(m){
-return m*60000
-}
-
-function schedule(){
-
-let mins=parseInt(minsInput.value)||30
-
-let delay=minutesToMs(mins)
-
-nextAlarm=Date.now()+delay
-
-next.textContent=formatTime(new Date(nextAlarm))
-
-startCountdown()
-
-timer=setTimeout(async ()=>{
-
-await playSound()
-
-schedule()
-
-},delay)
-
-}
-
-function start(){
-
-stop()
-
-schedule()
-
-status.textContent="corriendo"
-
-startBtn.disabled=true
-stopBtn.disabled=false
-
-countdownWrap.style.display="inline"
-
-}
-
-function stop(){
-
-if(timer)
-clearTimeout(timer)
-
-timer=null
-
-nextAlarm=null
-
-stopCountdown()
-
-status.textContent="detenida"
-
-next.textContent="—"
-
-countdownWrap.style.display="none"
-
-startBtn.disabled=false
-stopBtn.disabled=true
-
-}
-
-startBtn.onclick=start
-stopBtn.onclick=stop
-testBtn.onclick=playSound
-
-minsInput.onchange=()=>{
-if(timer) start()
-}
-
-vol.oninput=updateVolume
-
-fileInput.onchange=async ()=>{
-
-let f=fileInput.files[0]
-
-if(!f){
-
-decodedBuffer=null
-fileLabel.textContent="Ningún archivo seleccionado"
-
-return
-}
-
-fileLabel.textContent=f.name
-
-await unlockAudio()
-
-await decodeFile(f)
-
-}
-
-updateVolume()
-
-</script>
-
+<button id="stopSound">Parar sonido</button>
+
+</section>
+
+      <section class="settings">
+        <div class="row">
+          <label class="field">
+            <span>Intervalo (min)</span>
+            <input id="mins" type="number" min="1" value="30">
+          </label>
+
+          <label class="field">
+            <span>Volumen</span>
+            <div class="inline">
+              <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+              <span id="volLabel" class="pill">0.80</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="row">
+          <label class="field file">
+            <span>Sonido (MP3)</span>
+            <input id="file" type="file" accept="audio/*">
+            <span id="fileLabel" class="hint">Ningún archivo seleccionado</span>
+          </label>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
 </body>
 </html>
