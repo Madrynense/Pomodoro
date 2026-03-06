@@ -1,90 +1,92 @@
 <!doctype html>
 <html lang="es">
+
 <head>
 <meta charset="utf-8">
-<title>Pomodoro de Estudio</title>
+<title>Pomodoro</title>
 
-<style>
-body{
-font-family:system-ui;
-margin:25px;
-}
+<link rel="stylesheet" href="estilos.css">
 
-.card{
-max-width:600px;
-border:1px solid #ddd;
-border-radius:12px;
-padding:20px;
-}
-
-button{
-padding:10px 14px;
-border-radius:8px;
-border:1px solid #ccc;
-cursor:pointer;
-}
-
-.primary{
-border-color:#000;
-}
-
-.row{
-display:flex;
-gap:10px;
-flex-wrap:wrap;
-}
-
-.muted{
-color:#666;
-}
-
-.mono{
-font-family:monospace;
-font-size:16px;
-}
-</style>
 </head>
+
 
 <body>
 
 <div class="card">
 
-<h2>⏰ Pomodoro de Estudio</h2>
+<h2><center>Pomodoro - Sistema de Estudio</center></h2>
 
-<div class="row">
+<div class="controls">
+
 <button id="start" class="primary">Iniciar</button>
 <button id="stop" disabled>Detener</button>
 <button id="test">Probar sonido</button>
+
 </div>
 
-<p class="muted">
-Estado: <strong id="status">detenida</strong>
-<span id="countdownWrap" style="display:none">
- · faltan <strong id="countdown" class="mono">--:--</strong>
+
+<div class="status">
+
+<p>
+Estado:
+<strong id="status">detenida</strong>
+
+<span id="countdownWrap">
+ · faltan
+ <strong id="countdown">--:--</strong>
 </span>
-<br>
-Próxima alarma: <strong id="next">—</strong>
 </p>
 
+<p>
+Próxima alarma:
+<strong id="next">—</strong>
+</p>
+
+</div>
+
+
 <hr>
 
-<label>Intervalo (minutos)</label>
+
+<div class="settings">
+
+<label>Intervalo (min)</label>
 <input id="mins" type="number" value="30" min="1">
 
+</div>
+
+
 <hr>
 
-<label>Alarma</label><br>
+
+<div class="settings">
+
+<label>Elegir sonido MP3</label>
 <input id="file" type="file" accept="audio/*">
 
-<div class="muted" id="fileLabel">Ningún archivo seleccionado</div>
+<div class="muted" id="fileLabel">
+Ningún archivo seleccionado
+</div>
+
+</div>
+
 
 <hr>
 
-<label>Volumen</label><br>
+
+<div class="settings">
+
+<label>Volumen</label>
+
 <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+
 <span id="volLabel">0.8</span>
 
 </div>
+
+
+</div>
+
 
 
 <script>
@@ -293,9 +295,7 @@ stopBtn.disabled=true
 }
 
 startBtn.onclick=start
-
 stopBtn.onclick=stop
-
 testBtn.onclick=playSound
 
 minsInput.onchange=()=>{
