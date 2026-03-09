@@ -13,7 +13,6 @@
     <section class="card">
       <header class="header">
         <h1>Pomodoro - Sistema de Estudio</h1>
-        
       </header>
 
       <section class="timer">
@@ -28,6 +27,8 @@
           <div class="label">Faltan</div>
           <div id="countdown" class="value">--:--</div>
           <div class="meta">
+            <span>Modo: <strong id="mode">detenido</strong></span>
+            <span class="dot">•</span>
             <span>Estado: <strong id="status">detenida</strong></span>
             <span class="dot">•</span>
             <span>Próxima: <strong id="next">—</strong></span>
@@ -38,24 +39,27 @@
       <hr>
 
       <section class="controls">
-
-<button id="start" class="primary">Iniciar</button>
-
-<button id="stop" disabled>Detener</button>
-
-<button id="test">Probar sonido</button>
-
-<button id="stopSound">Parar sonido</button>
-
-</section>
+        <button id="start" class="primary">Iniciar</button>
+        <button id="stop" disabled>Detener</button>
+        <button id="testStudy">Probar alarma estudio</button>
+        <button id="testBreak">Probar alarma descanso</button>
+        <button id="stopSound">Parar sonido</button>
+      </section>
 
       <section class="settings">
         <div class="row">
           <label class="field">
-            <span>Intervalo (min)</span>
-            <input id="mins" type="number" min="1" value="30">
+            <span>Estudio (min)</span>
+            <input id="studyMins" type="number" min="1" value="30">
           </label>
 
+          <label class="field">
+            <span>Descanso (min)</span>
+            <input id="breakMins" type="number" min="1" value="10">
+          </label>
+        </div>
+
+        <div class="row">
           <label class="field">
             <span>Volumen</span>
             <div class="inline">
@@ -67,9 +71,15 @@
 
         <div class="row">
           <label class="field file">
-            <span>Sonido (MP3)</span>
-            <input id="file" type="file" accept="audio/*">
-            <span id="fileLabel" class="hint">Ningún archivo seleccionado</span>
+            <span>Alarma fin de estudio</span>
+            <input id="studyFile" type="file" accept="audio/*">
+            <span id="studyFileLabel" class="hint">Ningún archivo seleccionado</span>
+          </label>
+
+          <label class="field file">
+            <span>Alarma fin de descanso</span>
+            <input id="breakFile" type="file" accept="audio/*">
+            <span id="breakFileLabel" class="hint">Ningún archivo seleccionado</span>
           </label>
         </div>
       </section>

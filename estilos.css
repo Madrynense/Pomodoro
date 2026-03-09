@@ -1,14 +1,10 @@
 :root{
   --bg1:#0b1020;
   --bg2:#142a3a;
-
   --glass: rgba(255,255,255,.12);
-  --glass2: rgba(255,255,255,.08);
   --border: rgba(255,255,255,.22);
-
   --text: rgba(255,255,255,.92);
   --muted: rgba(255,255,255,.70);
-
   --shadow: 0 24px 70px rgba(0,0,0,.45);
 }
 
@@ -22,7 +18,6 @@ body{
   padding:24px;
   font-family: system-ui, Arial, sans-serif;
   color: var(--text);
-
   background:
     radial-gradient(900px 500px at 20% 20%, rgba(255,255,255,.10), transparent 60%),
     radial-gradient(800px 450px at 85% 75%, rgba(255,255,255,.08), transparent 60%),
@@ -83,7 +78,11 @@ hr{
 }
 
 @media (max-width: 520px){
-  .timer{ grid-template-columns: 1fr; justify-items:center; text-align:center; }
+  .timer{
+    grid-template-columns: 1fr;
+    justify-items:center;
+    text-align:center;
+  }
 }
 
 .ring{
@@ -110,11 +109,8 @@ hr{
   stroke: rgba(255,255,255,.85);
   stroke-width: 10;
   stroke-linecap: round;
-
-  /* estos se setean en JS */
   stroke-dasharray: 0;
   stroke-dashoffset: 0;
-
   transition: stroke-dashoffset 150ms linear;
 }
 
@@ -141,12 +137,15 @@ hr{
   align-items: center;
 }
 
-.dot{ opacity: .55; }
+.dot{
+  opacity: .55;
+}
 
 .controls{
   display:flex;
   gap:10px;
   flex-wrap:wrap;
+  margin-bottom: 14px;
 }
 
 button{
@@ -188,7 +187,9 @@ button.primary{
 }
 
 @media (max-width: 700px){
-  .row{ grid-template-columns: 1fr; }
+  .row{
+    grid-template-columns: 1fr;
+  }
 }
 
 .field{
@@ -199,7 +200,7 @@ button.primary{
 }
 
 .field input[type="number"]{
-  width: 110px;
+  width: 120px;
   padding: 10px 12px;
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,.22);

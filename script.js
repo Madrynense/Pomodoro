@@ -1,383 +1,391 @@
-let timerId = null
-let tickId = null
+let timerId = null;
+let tickId = null;
 
-let startAt = null
-let nextAt = null
-let intervalMs = 30 * 60 * 1000
+let startAt = null;
+let nextAt = null;
+let intervalMs = 30 * 60 * 1000;
 
-let audioCtx = null
-let gainNode = null
-let decodedBuffer = null
-let currentSource = null
+let currentMode = null; // "study" | "break"
 
+// Audio
+let audioCtx = null;
+let gainNode = null;
+let studyDecodedBuffer = null;
+let breakDecodedBuffer = null;
+let currentSource = null;
 
-const elStart = document.getElementById("start")
-const elStop = document.getElementById("stop")
-const elTest = document.getElementById("test")
-const elStopSound = document.getElementById("stopSound")
+// Parpadeo de pestaña
+let tabBlinkInterval = null;
+let tabBlinkTimeout = null;
+const originalTitle = document.title;
 
-const elStatus = document.getElementById("status")
-const elNext = document.getElementById("next")
-const elCountdown = document.getElementById("countdown")
+// UI
+const elStart = document.getElementById("start");
+const elStop = document.getElementById("stop");
+const elTestStudy = document.getElementById("testStudy");
+const elTestBreak = document.getElementById("testBreak");
+const elStopSound = document.getElementById("stopSound");
 
-const elMins = document.getElementById("mins")
-const elVol = document.getElementById("vol")
-const elVolLabel = document.getElementById("volLabel")
+const elStatus = document.getElementById("status");
+const elMode = document.getElementById("mode");
+const elNext = document.getElementById("next");
+const elCountdown = document.getElementById("countdown");
 
-const elFile = document.getElementById("file")
-const elFileLabel = document.getElementById("fileLabel")
+const elStudyMins = document.getElementById("studyMins");
+const elBreakMins = document.getElementById("breakMins");
+const elVol = document.getElementById("vol");
+const elVolLabel = document.getElementById("volLabel");
 
+const elStudyFile = document.getElementById("studyFile");
+const elStudyFileLabel = document.getElementById("studyFileLabel");
 
-const progressCircle = document.querySelector("circle.progress")
+const elBreakFile = document.getElementById("breakFile");
+const elBreakFileLabel = document.getElementById("breakFileLabel");
 
-const R = 52
-const CIRC = 2 * Math.PI * R
+// Círculo SVG
+const progressCircle = document.querySelector("circle.progress");
+const R = 52;
+const CIRC = 2 * Math.PI * R;
+progressCircle.style.strokeDasharray = `${CIRC}`;
+progressCircle.style.strokeDashoffset = `${CIRC}`;
 
-progressCircle.style.strokeDasharray = CIRC
-progressCircle.style.strokeDashoffset = CIRC
-
-
-function pad2(n){
-return String(n).padStart(2,"0")
+function pad2(n) {
+  return String(n).padStart(2, "0");
 }
 
-
-function fmtTime(dt){
-return dt.toLocaleTimeString([],{
-hour:'2-digit',
-minute:'2-digit',
-second:'2-digit'
-})
+function fmtTime(dt) {
+  return dt.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
 }
 
-
-function fmtRemaining(ms){
-
-const total = Math.max(0, Math.ceil(ms/1000))
-
-const m = Math.floor(total/60)
-
-const s = total % 60
-
-return `${pad2(m)}:${pad2(s)}`
-
+function fmtRemaining(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${pad2(m)}:${pad2(s)}`;
 }
 
-
-function setRunning(r){
-
-elStart.disabled = r
-elStop.disabled = !r
-
-elStatus.textContent = r ? "corriendo" : "detenida"
-
+function setRunning(r) {
+  elStart.disabled = r;
+  elStop.disabled = !r;
+  elStatus.textContent = r ? "corriendo" : "detenida";
 }
 
-
-async function ensureAudioUnlocked(){
-
-if(!audioCtx){
-
-audioCtx = new (window.AudioContext || window.webkitAudioContext)()
-
-gainNode = audioCtx.createGain()
-
-gainNode.connect(audioCtx.destination)
-
+function setModeLabel() {
+  if (currentMode === "study") {
+    elMode.textContent = "estudio";
+  } else if (currentMode === "break") {
+    elMode.textContent = "descanso";
+  } else {
+    elMode.textContent = "detenido";
+  }
 }
 
-if(audioCtx.state === "suspended")
-await audioCtx.resume()
-
-gainNode.gain.value = Number(elVol.value)
-
+function minutesToMs(mins) {
+  return Math.max(1, mins) * 60 * 1000;
 }
 
-
-async function decodeSelectedFile(file){
-
-if(!file){
-decodedBuffer = null
-return
+function getStudyMs() {
+  return minutesToMs(parseInt(elStudyMins.value || "30", 10));
 }
 
-await ensureAudioUnlocked()
-
-const buf = await file.arrayBuffer()
-
-try{
-
-decodedBuffer = await audioCtx.decodeAudioData(buf.slice(0))
-
-}catch{
-
-decodedBuffer = null
-
+function getBreakMs() {
+  return minutesToMs(parseInt(elBreakMins.value || "10", 10));
 }
 
+function stopTabBlink() {
+  if (tabBlinkInterval) {
+    clearInterval(tabBlinkInterval);
+    tabBlinkInterval = null;
+  }
+
+  if (tabBlinkTimeout) {
+    clearTimeout(tabBlinkTimeout);
+    tabBlinkTimeout = null;
+  }
+
+  document.title = originalTitle;
 }
 
+function startTabBlink(color) {
+  stopTabBlink();
 
-async function beepFallback(){
+  let alertTitle = originalTitle;
 
-await ensureAudioUnlocked()
+  if (color === "red") {
+    alertTitle = "🔴 Pomodoro";
+  } else if (color === "blue") {
+    alertTitle = "🔵 Pomodoro";
+  }
 
-const osc = audioCtx.createOscillator()
-const g = audioCtx.createGain()
+  let visible = false;
 
-osc.type = "sine"
+  tabBlinkInterval = setInterval(() => {
+    document.title = visible ? alertTitle : originalTitle;
+    visible = !visible;
+  }, 600);
 
-osc.frequency.value = 880
-
-g.gain.value = 0.12
-
-osc.connect(g)
-
-g.connect(gainNode)
-
-osc.start()
-
-setTimeout(()=>{
-
-try{
-osc.stop()
-}catch{}
-
-},700)
-
+  tabBlinkTimeout = setTimeout(() => {
+    stopTabBlink();
+  }, 10000);
 }
 
+async function ensureAudioUnlocked() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    gainNode = audioCtx.createGain();
+    gainNode.connect(audioCtx.destination);
+  }
 
-function stopSound(){
+  if (audioCtx.state === "suspended") {
+    await audioCtx.resume();
+  }
 
-if(currentSource){
-
-try{
-currentSource.stop()
-}catch{}
-
-currentSource = null
-
+  gainNode.gain.value = Number(elVol.value);
 }
 
+async function decodeAudioFile(file) {
+  if (!file) return null;
+
+  await ensureAudioUnlocked();
+  const buf = await file.arrayBuffer();
+
+  try {
+    return await audioCtx.decodeAudioData(buf.slice(0));
+  } catch {
+    return null;
+  }
 }
 
+async function beepFallback(freq = 880) {
+  await ensureAudioUnlocked();
 
-async function playSound(){
+  const osc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
 
-await ensureAudioUnlocked()
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  g.gain.value = 0.12;
 
-gainNode.gain.value = Number(elVol.value)
+  osc.connect(g);
+  g.connect(gainNode);
 
-stopSound()
+  osc.start();
 
-if(decodedBuffer){
-
-const src = audioCtx.createBufferSource()
-
-src.buffer = decodedBuffer
-
-src.connect(gainNode)
-
-src.start()
-
-currentSource = src
-
-}else{
-
-await beepFallback()
-
+  setTimeout(() => {
+    try {
+      osc.stop();
+    } catch {}
+  }, 700);
 }
 
+function stopSound() {
+  if (currentSource) {
+    try {
+      currentSource.stop();
+    } catch {}
+    currentSource = null;
+  }
 }
 
+async function playBuffer(buffer, fallbackFreq = 880) {
+  await ensureAudioUnlocked();
+  gainNode.gain.value = Number(elVol.value);
 
-function recalcInterval(){
+  stopSound();
 
-const mins = Math.max(1, parseInt(elMins.value || "30"))
-
-intervalMs = mins * 60 * 1000
-
+  if (buffer) {
+    const src = audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.connect(gainNode);
+    src.start();
+    currentSource = src;
+  } else {
+    await beepFallback(fallbackFreq);
+  }
 }
 
-
-function updateUI(){
-
-if(!nextAt){
-
-elCountdown.textContent = "--:--"
-
-elNext.textContent = "—"
-
-progressCircle.style.strokeDashoffset = CIRC
-
-return
-
+async function playStudySound() {
+  await playBuffer(studyDecodedBuffer, 880);
 }
 
-const now = Date.now()
-
-const remaining = nextAt - now
-
-elCountdown.textContent = fmtRemaining(remaining)
-
-elNext.textContent = fmtTime(new Date(nextAt))
-
-
-const elapsed = Math.min(intervalMs, Math.max(0, now - startAt))
-
-const progress = elapsed / intervalMs
-
-const offset = CIRC * (1 - progress)
-
-progressCircle.style.strokeDashoffset = offset
-
+async function playBreakSound() {
+  await playBuffer(breakDecodedBuffer, 660);
 }
 
+function updateUI() {
+  if (!nextAt || !startAt) {
+    elCountdown.textContent = "--:--";
+    elNext.textContent = "—";
+    progressCircle.style.strokeDashoffset = `${CIRC}`;
+    setModeLabel();
+    return;
+  }
 
-function stopAll(){
+  const now = Date.now();
+  const remaining = nextAt - now;
 
-if(timerId)
-clearTimeout(timerId)
+  elCountdown.textContent = fmtRemaining(remaining);
+  elNext.textContent = fmtTime(new Date(nextAt));
+  setModeLabel();
 
-if(tickId)
-clearInterval(tickId)
-
-timerId = null
-
-tickId = null
-
-startAt = null
-
-nextAt = null
-
-setRunning(false)
-
-updateUI()
-
+  const elapsed = Math.min(intervalMs, Math.max(0, now - startAt));
+  const p = elapsed / intervalMs;
+  const offset = CIRC * (1 - p);
+  progressCircle.style.strokeDashoffset = `${offset}`;
 }
 
-
-function scheduleNext(){
-
-startAt = Date.now()
-
-nextAt = startAt + intervalMs
-
-updateUI()
-
-
-if(tickId)
-clearInterval(tickId)
-
-tickId = setInterval(updateUI,200)
-
-
-if(timerId)
-clearTimeout(timerId)
-
-timerId = setTimeout(async ()=>{
-
-await playSound()
-
-stopAll()
-
-}, intervalMs)
-
-setRunning(true)
-
+function clearTimers() {
+  if (timerId) clearTimeout(timerId);
+  if (tickId) clearInterval(tickId);
+  timerId = null;
+  tickId = null;
 }
 
-
-elStart.addEventListener("click", async ()=>{
-
-await ensureAudioUnlocked()
-
-if(elFile.files && elFile.files[0] && !decodedBuffer){
-
-await decodeSelectedFile(elFile.files[0])
-
+function stopAll() {
+  clearTimers();
+  stopSound();
+  stopTabBlink();
+  startAt = null;
+  nextAt = null;
+  intervalMs = getStudyMs();
+  currentMode = null;
+  setRunning(false);
+  setModeLabel();
+  updateUI();
 }
 
-recalcInterval()
-
-stopAll()
-
-scheduleNext()
-
-})
-
-
-elStop.addEventListener("click", ()=>{
-
-stopAll()
-
-})
-
-
-elTest.addEventListener("click", async ()=>{
-
-await ensureAudioUnlocked()
-
-if(elFile.files && elFile.files[0] && !decodedBuffer){
-
-await decodeSelectedFile(elFile.files[0])
-
+function getNextMode(mode) {
+  return mode === "study" ? "break" : "study";
 }
 
-await playSound()
-
-})
-
-
-elStopSound.addEventListener("click", ()=>{
-
-stopSound()
-
-})
-
-
-elVol.addEventListener("input", ()=>{
-
-elVolLabel.textContent = Number(elVol.value).toFixed(2)
-
-if(gainNode)
-gainNode.gain.value = Number(elVol.value)
-
-})
-
-
-elMins.addEventListener("change", ()=>{
-
-recalcInterval()
-
-if(timerId){
-
-stopAll()
-
-scheduleNext()
-
+function getDurationForMode(mode) {
+  return mode === "study" ? getStudyMs() : getBreakMs();
 }
 
-})
+async function playAlarmForMode(mode) {
+  if (mode === "study") {
+    await playStudySound();
+  } else {
+    await playBreakSound();
+  }
+}
 
+function scheduleMode(mode) {
+  currentMode = mode;
+  intervalMs = getDurationForMode(mode);
+  startAt = Date.now();
+  nextAt = startAt + intervalMs;
 
-elFile.addEventListener("change", async ()=>{
+  updateUI();
+  setRunning(true);
 
-const f = elFile.files && elFile.files[0]
+  clearTimers();
+  tickId = setInterval(updateUI, 200);
 
-elFileLabel.textContent = f ? f.name : "Ningún archivo seleccionado"
+  timerId = setTimeout(async () => {
+    await playAlarmForMode(mode);
 
-decodedBuffer = null
+    if (mode === "study") {
+      startTabBlink("red");
+    } else if (mode === "break") {
+      startTabBlink("blue");
+    }
 
-if(f)
-await decodeSelectedFile(f)
+    scheduleMode(getNextMode(mode));
+  }, intervalMs);
+}
 
-})
+elStart.addEventListener("click", async () => {
+  stopTabBlink();
+  await ensureAudioUnlocked();
 
+  if (elStudyFile.files && elStudyFile.files[0] && !studyDecodedBuffer) {
+    studyDecodedBuffer = await decodeAudioFile(elStudyFile.files[0]);
+  }
 
-setRunning(false)
+  if (elBreakFile.files && elBreakFile.files[0] && !breakDecodedBuffer) {
+    breakDecodedBuffer = await decodeAudioFile(elBreakFile.files[0]);
+  }
 
-elVolLabel.textContent = Number(elVol.value).toFixed(2)
+  stopAll();
+  scheduleMode("study");
+});
 
-updateUI()
+elStop.addEventListener("click", () => {
+  stopAll();
+});
+
+elTestStudy.addEventListener("click", async () => {
+  await ensureAudioUnlocked();
+
+  if (elStudyFile.files && elStudyFile.files[0] && !studyDecodedBuffer) {
+    studyDecodedBuffer = await decodeAudioFile(elStudyFile.files[0]);
+  }
+
+  await playStudySound();
+});
+
+elTestBreak.addEventListener("click", async () => {
+  await ensureAudioUnlocked();
+
+  if (elBreakFile.files && elBreakFile.files[0] && !breakDecodedBuffer) {
+    breakDecodedBuffer = await decodeAudioFile(elBreakFile.files[0]);
+  }
+
+  await playBreakSound();
+});
+
+elStopSound.addEventListener("click", () => {
+  stopSound();
+});
+
+elVol.addEventListener("input", () => {
+  elVolLabel.textContent = Number(elVol.value).toFixed(2);
+  if (gainNode) {
+    gainNode.gain.value = Number(elVol.value);
+  }
+});
+
+elStudyMins.addEventListener("change", () => {
+  if (timerId && currentMode) {
+    stopAll();
+    scheduleMode("study");
+  }
+});
+
+elBreakMins.addEventListener("change", () => {
+  if (timerId && currentMode) {
+    stopAll();
+    scheduleMode("study");
+  }
+});
+
+elStudyFile.addEventListener("change", async () => {
+  const f = elStudyFile.files && elStudyFile.files[0];
+  elStudyFileLabel.textContent = f ? f.name : "Ningún archivo seleccionado";
+  studyDecodedBuffer = null;
+
+  if (f) {
+    studyDecodedBuffer = await decodeAudioFile(f);
+  }
+});
+
+elBreakFile.addEventListener("change", async () => {
+  const f = elBreakFile.files && elBreakFile.files[0];
+  elBreakFileLabel.textContent = f ? f.name : "Ningún archivo seleccionado";
+  breakDecodedBuffer = null;
+
+  if (f) {
+    breakDecodedBuffer = await decodeAudioFile(f);
+  }
+});
+
+// init
+setRunning(false);
+setModeLabel();
+elVolLabel.textContent = Number(elVol.value).toFixed(2);
+updateUI();
