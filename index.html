@@ -1,91 +1,99 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Pomodoro</title>
-  <link rel="stylesheet" href="estilos.css">
-  <link rel="icon" href="icono.png">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pomodoro</title>
+<link rel="stylesheet" href="estilos.css">
+<link rel="icon" href="icono.png">
 </head>
 
 <body>
-  <main class="app">
-    <section class="card">
-      <header class="header">
-        <h1>Pomodoro - Sistema de Estudio</h1>
-      </header>
 
-      <section class="timer">
-        <div class="ring" aria-hidden="true">
-          <svg viewBox="0 0 120 120">
-            <circle class="track" cx="60" cy="60" r="52"></circle>
-            <circle class="progress" cx="60" cy="60" r="52"></circle>
-          </svg>
-        </div>
+<main class="app">
+<section class="card">
 
-        <div class="time">
-          <div class="label">Faltan</div>
-          <div id="countdown" class="value">--:--</div>
-          <div class="meta">
-            <span>Modo: <strong id="mode">detenido</strong></span>
-            <span class="dot">•</span>
-            <span>Estado: <strong id="status">detenida</strong></span>
-            <span class="dot">•</span>
-            <span>Próxima: <strong id="next">—</strong></span>
-          </div>
-        </div>
-      </section>
+<header class="header">
+<h1>Pomodoro - Sistema de Estudio</h1>
+</header>
 
-      <hr>
+<section class="timer">
 
-      <section class="controls">
-        <button id="start" class="primary">Iniciar</button>
-        <button id="stop" disabled>Detener</button>
-        <button id="testStudy">Probar alarma estudio</button>
-        <button id="testBreak">Probar alarma descanso</button>
-        <button id="stopSound">Parar sonido</button>
-      </section>
+<div class="ring">
+<svg viewBox="0 0 120 120">
+<circle class="track" cx="60" cy="60" r="52"></circle>
+<circle class="progress" cx="60" cy="60" r="52"></circle>
+</svg>
+</div>
 
-      <section class="settings">
-        <div class="row">
-          <label class="field">
-            <span>Estudio (min)</span>
-            <input id="studyMins" type="number" min="1" value="30">
-          </label>
+<div class="time">
+<div class="label">Faltan</div>
+<div id="countdown" class="value">--:--</div>
 
-          <label class="field">
-            <span>Descanso (min)</span>
-            <input id="breakMins" type="number" min="1" value="10">
-          </label>
-        </div>
+<div class="meta">
+<span>Modo: <strong id="mode">detenido</strong></span>
+<span class="dot">•</span>
+<span>Estado: <strong id="status">detenida</strong></span>
+<span class="dot">•</span>
+<span>Próxima: <strong id="next">—</strong></span>
+<span class="dot">•</span>
+<span>Ciclos: <strong id="cycles">0</strong></span>
+</div>
+</div>
 
-        <div class="row">
-          <label class="field">
-            <span>Volumen</span>
-            <div class="inline">
-              <input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
-              <span id="volLabel" class="pill">0.80</span>
-            </div>
-          </label>
-        </div>
+</section>
 
-        <div class="row">
-          <label class="field file">
-            <span>Alarma fin de estudio</span>
-            <input id="studyFile" type="file" accept="audio/*">
-            <span id="studyFileLabel" class="hint">Ningún archivo seleccionado</span>
-          </label>
+<hr>
 
-          <label class="field file">
-            <span>Alarma fin de descanso</span>
-            <input id="breakFile" type="file" accept="audio/*">
-            <span id="breakFileLabel" class="hint">Ningún archivo seleccionado</span>
-          </label>
-        </div>
-      </section>
-    </section>
-  </main>
+<section class="controls">
+<button id="start" class="primary">Iniciar</button>
+<button id="stop" disabled>Detener</button>
+<button id="testStudy">Probar alarma estudio</button>
+<button id="testBreak">Probar alarma descanso</button>
+<button id="stopSound">Parar sonido</button>
+</section>
 
-  <script src="script.js"></script>
+<section class="settings">
+
+<div class="row">
+<label>
+<span>Estudio (min)</span>
+<input id="studyMins" type="number" min="1" value="30">
+</label>
+
+<label>
+<span>Descanso (min)</span>
+<input id="breakMins" type="number" min="1" value="10">
+</label>
+</div>
+
+<div class="row">
+<label>
+<span>Volumen</span>
+<input id="vol" type="range" min="0" max="1" step="0.01" value="0.8">
+<span id="volLabel">0.80</span>
+</label>
+</div>
+
+<div class="row">
+<label>
+<span>Alarma fin de estudio</span>
+<input id="studyFile" type="file" accept="audio/*">
+<span id="studyFileLabel">Ningún archivo seleccionado</span>
+</label>
+
+<label>
+<span>Alarma fin de descanso</span>
+<input id="breakFile" type="file" accept="audio/*">
+<span id="breakFileLabel">Ningún archivo seleccionado</span>
+</label>
+</div>
+
+</section>
+
+</section>
+</main>
+
+<script src="script.js"></script>
 </body>
 </html>
